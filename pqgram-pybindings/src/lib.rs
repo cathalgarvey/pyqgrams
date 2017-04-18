@@ -10,6 +10,8 @@ use itertools::Itertools;
 use pqgrams::{Tree, pqgram_distance, pqgram_profile, PQGram};
 use cpython::{Python, PyObject, PyResult, ObjectProtocol};
 
+static FILLER_RANDOM_INT : i64 = 6888428148507855167;
+
 // Recursive tree-builder from an LXML-like Python object
 fn tree_build(maybe_tree: Option<Tree<i64>>, py: Python, pytree: &PyObject) -> PyResult<Tree<i64>> {
     let mut tree = if let Some(t) = maybe_tree {
@@ -34,10 +36,15 @@ fn _profile_trees(py: Python, p: usize, q: usize, pytrees: &PyObject) -> PyResul
     Ok(profiles)
 }
 
+/// profile_trees returns the flattened PQGrams for each tree provided.
+/// "Filler" nodes from the extended tree will be represented by
+/// the FILLER_RANDOM_INT value, rather than zero, to avoid bugs caused
+/// by zero-hashing Python items like the empty string or the zero int.
 fn profile_trees(py: Python, p: usize, q: usize, pytrees: &PyObject) -> PyResult<Vec<Vec<Vec<i64>>>> {
     Ok(_profile_trees(py, p, q, pytrees)?.iter().map(
-        |v| v.iter().map(|p| p.concat(0)).collect()
-    ).collect())
+        |v| v.iter().map(
+            |p| p.concat(FILLER_RANDOM_INT)).collect()
+        ).collect())
 }
 
 /// Given an iterator over trees and a callback for pairwise scores, this sends
@@ -53,13 +60,12 @@ fn compare_matrix(py: Python, p: usize, q: usize, pytrees: &PyObject) -> PyResul
     Ok(matrix)
 }
 
-fn compare_one_to_many(py: Python, p: usize, q: usize, onepytree: &PyObject, otherpytrees: &PyObject) -> PyResult<Vec<(usize, f64)>> {
-    let onetree = tree_build(None, py, onepytree)?;
-    let oneprofile = pqgram_profile(onetree, p, q, false);
-    let othertrees = _profile_trees(py, p, q, otherpytrees)?;
-    let scores : Vec<(usize, f64)> = vec![oneprofile].iter()
-        .cartesian_product(othertrees.iter().enumerate())
-        .map(|(onep, (n, otherp))| (n, pqgram_distance::<i64, Tree<i64>>(onep, otherp, None)))
+fn compare_many_to_many(py: Python, p: usize, q: usize, pytrees1: &PyObject, pytrees2: &PyObject) -> PyResult<Vec<(usize, usize, f64)>> {
+    let trees1 = _profile_trees(py, p, q, pytrees1)?;
+    let trees2 = _profile_trees(py, p, q, pytrees2)?;
+    let scores: Vec<(usize, usize, f64)> = trees1.iter().enumerate()
+        .cartesian_product(trees2.iter().enumerate())
+        .map(|((n1, p1), (n2, p2))| (n1, n2, pqgram_distance::<i64, Tree<i64>>(p1, p2, None)))
         .collect();
     Ok(scores)
 }
@@ -67,7 +73,8 @@ fn compare_one_to_many(py: Python, p: usize, q: usize, onepytree: &PyObject, oth
 py_module_initializer!(pqgrams, initpqgrams, PyInit_pqgrams, |py, m| {
     m.add(py, "__doc__", "A CPython module exposing the Rust PQGrams library. You should probably use the Python module that wraps this.")?;
     m.add(py, "profile_trees", py_fn!(py, profile_trees(p: usize, q: usize, pytrees: &PyObject)))?;
-    m.add(py, "compare_one_to_many", py_fn!(py, compare_one_to_many(p: usize, q: usize, onepytree: &PyObject, otherpytrees: &PyObject)))?;
+    m.add(py, "compare_many_to_many", py_fn!(py, compare_many_to_many(p: usize, q: usize, pytrees1: &PyObject, pytrees2: &PyObject)))?;
     m.add(py, "compare_matrix", py_fn!(py, compare_matrix(p: usize, q: usize, pytrees: &PyObject)))?;
+    m.add(py, "FILLER_RANDOM_INT", FILLER_RANDOM_INT)?;
     Ok(())
 });
