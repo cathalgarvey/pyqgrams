@@ -53,9 +53,7 @@ fn profile_trees(py: Python, p: usize, q: usize, pytrees: &PyObject) -> PyResult
                 |p| p.concat(FILLER_RANDOM_INT)).collect()
         ).collect();
     let mut master_map = HashMap::new();
-    master_map.extend(
-        maps.into_iter().flat_map(|v| v.into_iter())
-    );
+    master_map.extend( maps.into_iter().flat_map( |v| v.into_iter() ) );
     Ok((filled_profiles, master_map))
 }
 

@@ -6,7 +6,9 @@ Copyright 2016 Cathal Garvey, licensed GNU LGPLv3 or later.
 from . import pqgrams as _pqgrams
 import copy
 
+
 FILLER_NODE_VALUE = _pqgrams.FILLER_RANDOM_INT
+
 
 def decomment_lxml(tree):
     """
@@ -39,6 +41,7 @@ def get_nearest(one, *others, p=2, q=3):
     idxs.sort(key=lambda idx_score: idx_score[2])
     return [others[i] for _,i,s in idxs]
 
+
 def get_best_pairs_in_set(tree_list, *, p=2, q=3):
     """
     Returns a list of pairs from the tree_list, ordered according to tree similarity.
@@ -52,6 +55,7 @@ def get_best_pairs_in_set(tree_list, *, p=2, q=3):
                           key=lambda idxidxscore: idxidxscore[2])
     return [(tree_list[i1], tree_list[i2], score) for (i1, i2, score) in ordered_idxs]
 
+
 def get_best_pairs_between_sets(tree_list_1, tree_list_2, *, p=2, q=3):
     """
     This returns a list of pairs of trees chosen between tree_list_1 and
@@ -61,24 +65,23 @@ def get_best_pairs_between_sets(tree_list_1, tree_list_2, *, p=2, q=3):
                           key=lambda idxidxscore: idxidxscore[2])
     return [(tree_list_1[i1], tree_list_2[i2], score) for (i1, i2, score) in ordered_idxs]
 
+
 def get_profiles(*trees, p=2, q=3, clone_tree=True, decomment=True, filler='*'):
     """
-    Calculates the PQ-Gram profile for each tree. Returns an iterator over the
-    resulting profiles, with the PQGrams of each profile cast as a tuple.
+    Returns the PQ-Gram profile for the given P and Q for each tree.
+    The returned profiles use the `filler` parameter to fill in PQ-Grams that
+    contain padding nodes; in the paper these are denoted '*' and this value
+    is probably appropriate for XML/HTML trees.
 
-    Profiles consist of 64-bit integers. The PQGrams algorithm creates "filler" nodes,
-    which denote the "extended" nodes added to a tree during the algorithm; because
-    Python hashes certain values (0, "") to the zero-integer, a randomly selected large
-    integer is used for these nodes, instead. This value is available on this library
-    as FILLER_NODE_VALUE, in case you need it.
+    Because LXML gives a unique "tag" attribute to all comment nodes in a tree,
+    this function strips comments before profiling. This behaviour can be disabled
+    using `decomment=False`.
 
-    To get an accurate tree when dealing with LXML trees, comment-stripping is
-    performed. To avoid headaches due to silently mutated trees, this copies the
-    tree before stripping and profiling it. However, for performance or memory
-    sensitive applications, you can disable this clone and the comment-stripping
-    will be performed directly on the passed trees without a deep copy operation.
-    If you know there are no comments in your trees, you can also disable
-    'decomment' which will avoid the deep copy, too.
+    Because decommenting trees passed to this function silently might cause
+    problems elsewhere, this function deep-copies tree objects by default before
+    decommenting. This deep-copy can be disabled with `clone_tree=False` (in
+    which case trees passed to this function will be decommented; beware!), or
+    by disabling decommenting altogether.
     """
     if decomment:
         if clone_tree:
