@@ -19,6 +19,12 @@ class PQGramVectoriser(BaseEstimator, TransformerMixin):
     PQGram diversity depending on the chosen parameters. Reasoning about this
     is somewhat similar to choosing N-Gram length when using text vectorisers.
 
+    Because CountVectorizer and TfidfVectorizer default to using a regex for
+    text tokenisation that would exclude grams containing "*", the default filler
+    character for this pipeline Vectoriser is "F". Setting this to "*" is a cheap
+    way to exclude filler-nodes from Vectorisation, which may improve profiles
+    in some cases.
+
     Also important is considering downstream options; it may make little sense
     to use N-Gram (N>1) windowing over the faux-text returned from the PQ-Grams
     profile builder, as these PQ-Grams already capture neighbour-semantic
@@ -26,7 +32,7 @@ class PQGramVectoriser(BaseEstimator, TransformerMixin):
     feature context.
     """
 
-    def __init__(self, p=2, q=3, filler='*', decomment=True, clone_trees=True):
+    def __init__(self, p=2, q=3, filler='F', decomment=True, clone_trees=True):
         self.p = p
         self.q = q
         self.filler = filler
@@ -36,11 +42,11 @@ class PQGramVectoriser(BaseEstimator, TransformerMixin):
     def fit(self, X, y=None):
         return self
 
-    def transform(self, X);
+    def transform(self, X):
         rawP = get_profiles(*X,
                             p=self.p,
                             q=self.q,
                             filler=self.filler,
                             decomment=self.decomment,
                             clone_tree=self.clone_trees)
-        return [' '.join(profile) for profile in rawP]
+        return [' '.join(''.join(gram) for gram in profile) for profile in rawP]
