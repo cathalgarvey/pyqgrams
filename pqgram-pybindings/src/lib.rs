@@ -27,13 +27,32 @@ fn tree_build(py: Python, pytree: &PyObject) -> PyResult<Tree<i64>> {
     Ok(tree)
 }
 
-fn _profile_trees(py: Python, p: usize, q: usize, pytrees: &PyObject) -> PyResult<Vec<Vec<PQGram<i64>>>> {
+/// Builds an i64 tree from an LXML-Like python object, returns the tree
+/// and a hashmap mapping i64s to stringified "tag" attributes of each node.
+pub fn tree_build_with_map(py: Python, pytree: &PyObject) -> PyResult<(Tree<i64>, HashMap<i64, String>)> {
+    let tagobj = pytree.getattr(py, "tag")?;
+    let taghash = tagobj.hash(py)?;
+    let tagstr: String = tagobj.str(py)?.to_string_lossy(py).into_owned();
+    let mut map = HashMap::new();
+    map.insert(taghash as i64, tagstr);
+    let mut tree = Tree::new(taghash as i64);
+    for child in pytree.iter(py)?.into_iter() {
+        let (subtree, submap) = tree_build_with_map(py, &child?)?;
+        tree = tree.add_node(subtree);
+        map.extend(submap.into_iter());
+    }
+    Ok((tree, map))
+}
+
+fn _profile_trees(py: Python, p: usize, q: usize, pytrees: &PyObject) -> PyResult<(Vec<Vec<PQGram<i64>>>, Vec<HashMap<i64, String>>)> {
     let mut profiles = vec![];
+    let mut maps = vec![];
     for pytree in pytrees.iter(py)?.into_iter() {
-        let tree = tree_build(py, &pytree?)?;
+        let (tree, m) = tree_build_with_map(py, &pytree?)?;
         profiles.push(pqgram_profile(tree, p, q, false));
+        maps.push(m);
     };
-    Ok(profiles)
+    Ok((profiles, maps))
 }
 
 /// profile_trees returns the flattened PQGrams for each tree provided.
@@ -41,7 +60,8 @@ fn _profile_trees(py: Python, p: usize, q: usize, pytrees: &PyObject) -> PyResul
 /// the FILLER_RANDOM_INT value, rather than zero, to avoid bugs caused
 /// by zero-hashing Python items like the empty string or the zero int.
 pub fn profile_trees(py: Python, p: usize, q: usize, pytrees: &PyObject) -> PyResult<Vec<Vec<Vec<i64>>>> {
-    Ok(_profile_trees(py, p, q, pytrees)?.iter().map(
+    let (profiles, _) = _profile_trees(py, p, q, pytrees)?;
+    Ok(profiles.iter().map(
         |v| v.iter().map(
             |p| p.concat(FILLER_RANDOM_INT)).collect()
         ).collect())
@@ -50,7 +70,7 @@ pub fn profile_trees(py: Python, p: usize, q: usize, pytrees: &PyObject) -> PyRe
 /// Given an iterator over trees, this compares all trees in the iterator to all
 /// other trees. It is, clearly, very prone to combinatorial explosion; beware!
 pub fn compare_matrix(py: Python, p: usize, q: usize, pytrees: &PyObject) -> PyResult<Vec<(usize, usize, f64)>> {
-    let profiles = _profile_trees(py, p, q, pytrees)?;
+    let (profiles, _) = _profile_trees(py, p, q, pytrees)?;
     let matrix : Vec<(usize, usize, f64)> = profiles.iter()
           .enumerate()
           .tuple_combinations()  // Itertools!
@@ -63,8 +83,8 @@ pub fn compare_matrix(py: Python, p: usize, q: usize, pytrees: &PyObject) -> PyR
 /// This function takes two iterators of trees, and compares the two sets of profiles.
 /// Beware: Combinatorial explosions possible.
 pub fn compare_many_to_many(py: Python, p: usize, q: usize, pytrees1: &PyObject, pytrees2: &PyObject) -> PyResult<Vec<(usize, usize, f64)>> {
-    let trees1 = _profile_trees(py, p, q, pytrees1)?;
-    let trees2 = _profile_trees(py, p, q, pytrees2)?;
+    let (trees1, _) = _profile_trees(py, p, q, pytrees1)?;
+    let (trees2, _) = _profile_trees(py, p, q, pytrees2)?;
     let scores: Vec<(usize, usize, f64)> = trees1.iter().enumerate()
         .cartesian_product(trees2.iter().enumerate())
         .map(|((n1, p1), (n2, p2))| (n1, n2, pqgram_distance::<i64, Tree<i64>>(p1, p2, None)))
