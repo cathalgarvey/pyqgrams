@@ -2,14 +2,18 @@
 /// an API that facilitates tree building; this is enforced in the Python
 /// code of the module, so don't bypass that and things should be just fine. :)
 
-#[macro_use] extern crate cpython;
+#[macro_use]
+extern crate cpython;
 extern crate pqgrams;
 extern crate itertools;
 use itertools::Itertools;
+use std::collections::HashMap;
 
 use pqgrams::{Tree, pqgram_distance, pqgram_profile, PQGram};
 use cpython::{Python, PyObject, PyResult, ObjectProtocol};
 
+// Replaces "Filler" nodes in returned trees, rather than the more ambiguous "0".
+// Chosen by fair die roll.
 static FILLER_RANDOM_INT : i64 = 6888428148507855167;
 
 // Recursive tree-builder from an LXML-like Python object
@@ -40,16 +44,16 @@ fn _profile_trees(py: Python, p: usize, q: usize, pytrees: &PyObject) -> PyResul
 /// "Filler" nodes from the extended tree will be represented by
 /// the FILLER_RANDOM_INT value, rather than zero, to avoid bugs caused
 /// by zero-hashing Python items like the empty string or the zero int.
-fn profile_trees(py: Python, p: usize, q: usize, pytrees: &PyObject) -> PyResult<Vec<Vec<Vec<i64>>>> {
+pub fn profile_trees(py: Python, p: usize, q: usize, pytrees: &PyObject) -> PyResult<Vec<Vec<Vec<i64>>>> {
     Ok(_profile_trees(py, p, q, pytrees)?.iter().map(
         |v| v.iter().map(
             |p| p.concat(FILLER_RANDOM_INT)).collect()
         ).collect())
 }
 
-/// Given an iterator over trees and a callback for pairwise scores, this sends
-/// the scores for each tree pairing back via callback.
-fn compare_matrix(py: Python, p: usize, q: usize, pytrees: &PyObject) -> PyResult<Vec<(usize, usize, f64)>> {
+/// Given an iterator over trees, this compares all trees in the iterator to all
+/// other trees. It is, clearly, very prone to combinatorial explosion; beware!
+pub fn compare_matrix(py: Python, p: usize, q: usize, pytrees: &PyObject) -> PyResult<Vec<(usize, usize, f64)>> {
     let profiles = _profile_trees(py, p, q, pytrees)?;
     let matrix : Vec<(usize, usize, f64)> = profiles.iter()
           .enumerate()
@@ -60,7 +64,9 @@ fn compare_matrix(py: Python, p: usize, q: usize, pytrees: &PyObject) -> PyResul
     Ok(matrix)
 }
 
-fn compare_many_to_many(py: Python, p: usize, q: usize, pytrees1: &PyObject, pytrees2: &PyObject) -> PyResult<Vec<(usize, usize, f64)>> {
+/// This function takes two iterators of trees, and compares the two sets of profiles.
+/// Beware: Combinatorial explosions possible.
+pub fn compare_many_to_many(py: Python, p: usize, q: usize, pytrees1: &PyObject, pytrees2: &PyObject) -> PyResult<Vec<(usize, usize, f64)>> {
     let trees1 = _profile_trees(py, p, q, pytrees1)?;
     let trees2 = _profile_trees(py, p, q, pytrees2)?;
     let scores: Vec<(usize, usize, f64)> = trees1.iter().enumerate()

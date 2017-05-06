@@ -20,23 +20,25 @@ def get_nearest(one, *others, p=2, q=3):
     idxs.sort(key=lambda idx_score: idx_score[2])
     return (others[i] for _,i,s in idxs)
 
-def get_best_pairs_in_set(tree_set, *, p=2, q=3):
+def get_best_pairs_in_set(tree_list, *, p=2, q=3):
     """
-    Returns a list of pairs from the tree_set, ordered according to tree similarity.
+    Returns a list of pairs from the tree_list, ordered according to tree similarity.
 
     Because this generates distances for each non-self pairing of trees, it
     will quickly become expensive as the number of input trees increases.
-    """
-    ordered_idxs = sorted(_pqgrams.compare_matrix(p, q, tree_set),
-                          key=lambda idxidxscore: idxidxscore[2])
-    return ((tree_set[i1], tree_set[i2], score) for (i1, i2, score) in ordered_idxs)
 
-def get_best_pairs_between_sets(tree_set_1, tree_set_2, *, p=2, q=3):
+    NB: tree_list can be any *indexable* iterator; this is usually a list but not always.
     """
-    """
-    ordered_idxs = sorted(_pqgrams.compare_many_to_many(p, 1, tree_set_1, tree_set_2),
+    ordered_idxs = sorted(_pqgrams.compare_matrix(p, q, tree_list),
                           key=lambda idxidxscore: idxidxscore[2])
-    return ((tree_set_1[i1], tree_set_2[i2], score) for (i1, i2, score) in ordered_idxs)
+    return ((tree_list[i1], tree_list[i2], score) for (i1, i2, score) in ordered_idxs)
+
+def get_best_pairs_between_sets(tree_list_1, tree_list_2, *, p=2, q=3):
+    """
+    """
+    ordered_idxs = sorted(_pqgrams.compare_many_to_many(p, 1, tree_list_1, tree_list_2),
+                          key=lambda idxidxscore: idxidxscore[2])
+    return ((tree_list_1[i1], tree_list_2[i2], score) for (i1, i2, score) in ordered_idxs)
 
 def get_profiles(*trees, p=2, q=3):
     """
