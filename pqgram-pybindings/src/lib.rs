@@ -16,16 +16,12 @@ use cpython::{Python, PyObject, PyResult, ObjectProtocol};
 // Chosen by fair die roll.
 static FILLER_RANDOM_INT : i64 = 6888428148507855167;
 
-// Recursive tree-builder from an LXML-like Python object
-fn tree_build(maybe_tree: Option<Tree<i64>>, py: Python, pytree: &PyObject) -> PyResult<Tree<i64>> {
-    let mut tree = if let Some(t) = maybe_tree {
-        t
-    } else {
-        let tag = pytree.getattr(py, "tag")?.hash(py)?;
-        Tree::new(tag as i64)
-    };
+// Recursive tree-builder from an LXML-like Python obect
+fn tree_build(py: Python, pytree: &PyObject) -> PyResult<Tree<i64>> {
+    let tag = pytree.getattr(py, "tag")?.hash(py)?;
+    let mut tree = Tree::new(tag as i64);
     for child in pytree.iter(py)?.into_iter() {
-        let subtree = tree_build(None, py, &child?);
+        let subtree = tree_build(py, &child?);
         tree = tree.add_node(subtree?);
     };
     Ok(tree)
@@ -34,7 +30,7 @@ fn tree_build(maybe_tree: Option<Tree<i64>>, py: Python, pytree: &PyObject) -> P
 fn _profile_trees(py: Python, p: usize, q: usize, pytrees: &PyObject) -> PyResult<Vec<Vec<PQGram<i64>>>> {
     let mut profiles = vec![];
     for pytree in pytrees.iter(py)?.into_iter() {
-        let tree = tree_build(None, py, &pytree?)?;
+        let tree = tree_build(py, &pytree?)?;
         profiles.push(pqgram_profile(tree, p, q, false));
     };
     Ok(profiles)
