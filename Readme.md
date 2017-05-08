@@ -20,7 +20,9 @@ designed to test the theory that PQ-Gram profiles could be treated similarly to
 N-Grams for vectorisation and classification of page structure. The Transformer
 is expected to be used upstream of a `CountVectorizer` or `TfidfVectorizer` in
 a pipeline that accepts LXML trees. Probably, `CountVectorizer` makes more sense,
-most of the time.
+most of the time. If you intend to use this with a distributed parameter search,
+put the included `LxmlParseTransformer` transformer upstream of it, and pass it
+HTML strings rather than trees; this allows parallel execution.
 
 ## Installation
 

@@ -3,7 +3,7 @@ from setuptools_rust import RustExtension
 import textwrap
 
 setup(name='pyqgrams',
-      version='0.0.3',
+      version='0.0.4',
       description="Bindings to the Rust PQGrams crate for Python.",
       long_description=textwrap.dedent("""\
         # Building Note

@@ -5,6 +5,29 @@ can be used as features by estimators or classifiers in sklearn pipelines.
 
 from .functions import get_profiles
 from sklearn.base import TransformerMixin, BaseEstimator
+import lxml.html
+
+
+class LxmlParseTransformer(BaseEstimator, TransformerMixin):
+    """
+    Helpful pipeline-compatible way to parse HTML strings into LXML trees.
+    Handy if you want to use PQGramVectoriser in a FeatureUnion where other
+    feature extractors don't want LXML; just put this transformer above the
+    PQGramVectoriser portion only and give raw strings to the pipeline.
+
+    Putting this in a pipeline with PQGramVectoriser is necessary to permit
+    parallel execution, for example using sklearn.model_selection.GridSearchCV's
+    'n_jobs' parameter. If using this upstream of PQGramVectoriser, the trees
+    produced are probably discarded shortly after creation, so disable the
+    clone_trees option in PQGarmVectoriser for efficiency.
+    """
+
+    def fit(self, X, y=None):
+        return self
+
+    def transform(self, X):
+        return [lxml.html.fromstring(x) for x in X]
+
 
 class PQGramVectoriser(BaseEstimator, TransformerMixin):
     """
@@ -30,13 +53,21 @@ class PQGramVectoriser(BaseEstimator, TransformerMixin):
     profile builder, as these PQ-Grams already capture neighbour-semantic
     relationships, and additional adjacency emphasis may harm, not help,
     feature context.
+
+    For some reason, this vectoriser alone will not work well with parallel
+    execution within SKLearn, returning a somewhat cryptic error that seems to
+    lie within LXML or etree. If the pipeline that is being parallel-fit includes
+    LxmlParseTransformer immediately upstream of PQGramVectoriser, however, then
+    things work again. Presumably tihs lets each executor have its own LXML
+    tree. If doing so, implying that the pipeline is receiving immutable strings,
+    remember to disable "clone_trees" for efficiency.
     """
 
     def __init__(self, p=2, q=3, filler='F', decomment=True, clone_trees=True):
         self.p = p
         self.q = q
         self.filler = filler
-        self.decomment = decomment,
+        self.decomment = decomment
         self.clone_trees = clone_trees
 
     def fit(self, X, y=None):
