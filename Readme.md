@@ -35,9 +35,9 @@ You will also need to install [setuptools_rust][sutr], prior to calling
 `--user` flag *is required*.
 
 *Update*: If you are using 64-bit Linux and Python 3.5, there is a binary wheel in the
-repository for version 0.3:
+repository for version 0.4:
 
-`pip install 'https://github.com/cathalgarvey/pyqgrams/raw/master/dist/pyqgrams-0.0.3-cp35-cp35m-linux_x86_64.whl'`
+`pip install 'https://github.com/cathalgarvey/pyqgrams/raw/master/dist/pyqgrams-0.0.4-cp35-cp35m-linux_x86_64.whl'`
 
 If anyone knows how to get x86_64 binary wheels uploaded to PyPI I'm happy to
 package, but I get errors due to the x86_64 string being considered "invalid"
