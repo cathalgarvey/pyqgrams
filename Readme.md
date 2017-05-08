@@ -8,8 +8,19 @@ various websites or HTML fragments.
 
 Even so, calculating these involves a lot of recursive tree-building,
 which Python isn't very fast at. So, this is my attempt to create a Python
-implementation with a Rust back-end, offering nice interfaces for common
+implementation with a [Rust back-end][rpqg], offering nice interfaces for common
 queries.
+
+This project includes Python bindings and wrapper functions to work with LXML-like
+trees, and can be used to find best-matching trees between or within sets, or
+to build a PQ-Gram profile from LXML trees.
+
+It also includes an experimental Transformer class for [Scikit-Learn][sklearn],
+designed to test the theory that PQ-Gram profiles could be treated similarly to
+N-Grams for vectorisation and classification of page structure. The Transformer
+is expected to be used upstream of a `CountVectorizer` or `TfidfVectorizer` in
+a pipeline that accepts LXML trees. Probably, `CountVectorizer` makes more sense,
+most of the time.
 
 ## Installation
 
@@ -21,16 +32,25 @@ You will also need to install [setuptools_rust][sutr], prior to calling
 `rustup` and other common Rust installers do *not* install system-wide, the
 `--user` flag *is required*.
 
-In the future I plan to compile and distribute binary wheels for 64-bit Linux.
+*Update*: If you are using 64-bit Linux and Python 3.5, there is a binary wheel in the
+repository for version 0.3:
+
+`pip install 'https://github.com/cathalgarvey/pyqgrams/raw/master/dist/pyqgrams-0.0.3-cp35-cp35m-linux_x86_64.whl'`
+
+If anyone knows how to get x86_64 binary wheels uploaded to PyPI I'm happy to
+package, but I get errors due to the x86_64 string being considered "invalid"
+by PyPI. :shrug:
 
 ## WIP
-The Rust code portion probably works, but I haven't tested the Python
-interface functions yet, so consider this potentially explosive. :)
-
-This isn't a fixed interface and will evolve quickly.
+* This isn't a fixed interface and will evolve quickly.
+* I've done some manual testing but there is no actual test-suite, so things
+  may break.
 
 ## TODO / Desiderata
 
 * Rational wrappers for JSON trees
 * "Find Similar Subtree" function
 * Ability to re-use tree profiles
+
+[rpqg]: https://github.com/cathalgarvey/pqgrams
+[sutr]: https://github.com/fafhrd91/setuptools-rust
