@@ -6,6 +6,7 @@ can be used as features by estimators or classifiers in sklearn pipelines.
 from .functions import get_profiles
 from sklearn.base import TransformerMixin, BaseEstimator
 import lxml.html
+import html_text
 
 
 class LxmlParseTransformer(BaseEstimator, TransformerMixin):
@@ -27,6 +28,18 @@ class LxmlParseTransformer(BaseEstimator, TransformerMixin):
 
     def transform(self, X):
         return [lxml.html.fromstring(x) for x in X]
+
+
+class HtmlToTextTransformer(BaseEstimator, TransformerMixin):
+    """
+    To help facilitate union-pipelines where other branches
+    just want the text, thanks.
+    """
+    def fit(self, X, y=None):
+        return self
+
+    def transform(self, X):
+        return [html_text.extract_text(x) for x in X]
 
 
 class PQGramVectoriser(BaseEstimator, TransformerMixin):
